@@ -356,11 +356,15 @@ export default function DashboardPage() {
         {/* Live Focus Chamber Widget */}
         <FocusTimerWidget
           activeSession={activeFocusSession}
-          onStart={(taskId) => startFocusMutation.mutateAsync(taskId)}
-          onComplete={(sessionId, durationSeconds) =>
-            completeFocusMutation.mutateAsync({ sessionId, durationSeconds })
-          }
-          onCancel={(sessionId) => cancelFocusMutation.mutateAsync(sessionId)}
+          onStart={async (taskId) => {
+            await startFocusMutation.mutateAsync(taskId);
+          }}
+          onComplete={async (sessionId, durationSeconds) => {
+            await completeFocusMutation.mutateAsync({ sessionId, durationSeconds });
+          }}
+          onCancel={async (sessionId) => {
+            await cancelFocusMutation.mutateAsync(sessionId);
+          }}
         />
 
         {/* Today's Tasks Operational Feed */}

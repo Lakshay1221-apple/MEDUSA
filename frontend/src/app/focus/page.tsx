@@ -78,11 +78,15 @@ export default function FocusPage() {
         {/* Live Active Focus Chamber */}
         <FocusTimerWidget
           activeSession={activeSession}
-          onStart={(taskId) => startMutation.mutateAsync(taskId)}
-          onComplete={(sessionId, durationSeconds) =>
-            completeMutation.mutateAsync({ sessionId, durationSeconds })
-          }
-          onCancel={(sessionId) => cancelMutation.mutateAsync(sessionId)}
+          onStart={async (taskId) => {
+            await startMutation.mutateAsync(taskId);
+          }}
+          onComplete={async (sessionId, durationSeconds) => {
+            await completeMutation.mutateAsync({ sessionId, durationSeconds });
+          }}
+          onCancel={async (sessionId) => {
+            await cancelMutation.mutateAsync(sessionId);
+          }}
         />
 
         {/* Focus Sessions History Table */}
