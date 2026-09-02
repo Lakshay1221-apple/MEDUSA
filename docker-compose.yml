@@ -35,7 +35,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: medusa-api
     restart: unless-stopped
@@ -58,7 +58,7 @@ services:
 
   worker:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: medusa-worker
     command: npm run start:prod
@@ -76,6 +76,22 @@ services:
       STORAGE_LOCAL_DIR: /app/uploads
     volumes:
       - ./uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medusa-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      NEXT_PUBLIC_API_URL: http://api:3000/api/v1
+      NEXT_PUBLIC_WS_URL: http://api:3000/realtime
+    ports:
+      - "3001:3001"
 
 volumes:
   postgres_data:

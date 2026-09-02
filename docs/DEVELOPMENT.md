@@ -1,52 +1,65 @@
 # MEDUSA — Development & Operations Guide
 
-## 1. Environment Variables Setup
+## 1. Repository Structure
 
-Configure `.env` using `.env.example`:
-```bash
-cp .env.example .env
+MEDUSA is organized as a monorepo with independent backend and frontend applications:
+
+```text
+MEDUSA/
+├── backend/    # NestJS API, BullMQ workers, Prisma ORM
+├── frontend/   # Next.js 14 App Router, Tailwind CSS, TanStack Query
+├── docs/       # Architecture & API specifications
+└── uploads/    # Local storage directory
 ```
-
-Key variables:
-- `PORT`: HTTP port (default `3000`)
-- `DATABASE_URL`: PostgreSQL connection string
-- `REDIS_URL`: Redis connection string
-- `JWT_SECRET` & `JWT_REFRESH_SECRET`: Secrets for token signing
-- `ENCRYPTION_KEY`: 64-char hex key for AES-256 token encryption
-- `STORAGE_DRIVER`: `local` or `s3`
 
 ---
 
-## 2. Database Migrations & Seeding
+## 2. Backend Development
 
 ```bash
-# Generate Prisma Client
+cd backend
+
+# 1. Configure environment
+cp .env.example .env
+
+# 2. Install dependencies & generate Prisma client
+npm install
 npm run prisma:generate
 
-# Run migrations
+# 3. Run database migrations
 npm run prisma:migrate
 
-# Seed development database
-npm run prisma:seed
-```
+# 4. Start NestJS development server
+npm run start:dev
 
----
-
-## 3. Running Test Suites
-
-```bash
-# Run unit & integration tests
+# 5. Run backend tests & build
 npm test
-
-# Run with full coverage report
-npm run test:cov
+npm run build
 ```
 
 ---
 
-## 4. Docker Deployment
+## 3. Frontend Development
 
 ```bash
-# Start PostgreSQL, Redis, API, and Worker containers
+cd frontend
+
+# 1. Install dependencies
+npm install
+
+# 2. Start Next.js development server (port 3001)
+npm run dev
+
+# 3. Run frontend tests & production build
+npm test
+npm run build
+```
+
+---
+
+## 4. Docker Compose Orchestration
+
+```bash
+# Start PostgreSQL, Redis, Backend API, Worker, and Frontend containers
 docker compose up --build
 ```

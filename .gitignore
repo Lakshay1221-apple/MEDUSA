@@ -36,16 +36,18 @@ pnpm-debug.log*
 dist/
 build/
 out/
+.next/
 coverage/
 .nyc_output/
 .tmp/
 .temp/
 
 # -------------------------
-# NestJS
+# NestJS & Frontend
 # -------------------------
 .nest/
 nest-debug.log
+.turbo/
 
 # -------------------------
 # Prisma
@@ -54,10 +56,16 @@ prisma/*.db
 prisma/*.db-journal
 prisma/*.db-shm
 prisma/*.db-wal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/prisma/*.db-shm
+backend/prisma/*.db-wal
 
 # Keep Prisma schema and migrations tracked
 !prisma/schema.prisma
 !prisma/migrations/
+!backend/prisma/schema.prisma
+!backend/prisma/migrations/
 
 # -------------------------
 # Uploads / User Files
