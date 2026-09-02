@@ -149,7 +149,10 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: userId, email },
-      { secret: accessSecret, expiresIn: accessExpiresIn },
+      {
+        secret: accessSecret,
+        expiresIn: (accessExpiresIn || '15m') as any,
+      },
     );
 
     // Generate random refresh token string
