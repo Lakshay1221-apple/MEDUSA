@@ -589,6 +589,7 @@ model AccountabilityTag {
 
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@unique([user_id, tag])
   @@index([user_id])
   @@map("accountability_tags")
 }

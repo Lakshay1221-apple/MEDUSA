@@ -107,6 +107,36 @@ export class ArcDaysService {
       });
     }
 
+    const existingArcDay = await this.prisma.arcDay.findUnique({
+      where: { arc_id_date: { arc_id: arcId, date } },
+    });
+
+    if (existingArcDay && existingArcDay.status === DayStatus.CLOSED) {
+      return {
+        arcDay: existingArcDay,
+        summary: {
+          plannedTasks: existingArcDay.planned_tasks,
+          completedTasks: existingArcDay.completed_tasks,
+          missedTasks: existingArcDay.missed_tasks,
+          skippedTasks: existingArcDay.skipped_tasks,
+          abandonedTasks: existingArcDay.abandoned_tasks,
+          plannedMinutes: existingArcDay.planned_minutes,
+          completedMinutes: existingArcDay.completed_minutes,
+          deepWorkMinutes: existingArcDay.deep_work_minutes,
+          executionPercent:
+            existingArcDay.planned_tasks > 0
+              ? Math.round(
+                  (existingArcDay.completed_tasks / existingArcDay.planned_tasks) *
+                    100,
+                )
+              : 0,
+          isPerfectDay: false,
+          perfectBonus: 0,
+          alreadyClosed: true,
+        },
+      };
+    }
+
     // Find all tasks for this date
     const tasks = await this.prisma.task.findMany({
       where: {

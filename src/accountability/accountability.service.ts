@@ -82,10 +82,12 @@ export class AccountabilityService {
       if (f.tagToAssign) {
         const tag = await this.prisma.accountabilityTag.upsert({
           where: {
-            id: `${userId}_${f.tagToAssign}`, // Synthetic lookup or findFirst
+            user_id_tag: {
+              user_id: userId,
+              tag: f.tagToAssign,
+            },
           },
           create: {
-            id: `${userId}_${f.tagToAssign}`,
             user_id: userId,
             tag: f.tagToAssign,
             evidence: JSON.stringify(f.facts),
