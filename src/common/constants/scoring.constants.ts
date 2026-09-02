@@ -1,0 +1,16 @@
+export const SCORING_DEFAULTS = {
+  SCHEDULED_POINTS: 10,
+  HABIT_POINTS: 5,
+  SKIP_PENALTY: -15,
+  ABANDON_PENALTY: -25,
+  PERFECT_DAY_BONUS: 20,
+  DEEP_WORK_PER_15MIN: 1,
+  GITHUB_VERIFICATION_POINTS: 15,
+  DIFFICULTY_MULTIPLIER_MAP: {
+    1: 1.0,
+    2: 1.2,
+    3: 1.4,
+    4: 1.6,
+    5: 2.0,
+  } as Record<number, number>,
+};
