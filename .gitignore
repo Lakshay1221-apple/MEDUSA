@@ -1,0 +1,185 @@
+# ============================================================
+# MEDUSA — Root .gitignore
+# ============================================================
+
+# -------------------------
+# Dependencies
+# -------------------------
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-cache/
+.yarn-integrity
+
+# -------------------------
+# Environment / Secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+!.env.template
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -------------------------
+# Build / Output
+# -------------------------
+dist/
+build/
+out/
+coverage/
+.nyc_output/
+.tmp/
+.temp/
+
+# -------------------------
+# NestJS
+# -------------------------
+.nest/
+nest-debug.log
+
+# -------------------------
+# Prisma
+# -------------------------
+prisma/*.db
+prisma/*.db-journal
+prisma/*.db-shm
+prisma/*.db-wal
+
+# Keep Prisma schema and migrations tracked
+!prisma/schema.prisma
+!prisma/migrations/
+
+# -------------------------
+# Uploads / User Files
+# -------------------------
+uploads/
+storage/
+tmp/
+temp/
+
+# User-uploaded documents
+*.pdf
+*.doc
+*.docx
+
+# OCR / extracted temporary files
+ocr/
+extracted/
+chunks/
+
+# -------------------------
+# Redis / Queue
+# -------------------------
+.redis/
+redis-data/
+
+# -------------------------
+# Docker
+# -------------------------
+docker-data/
+docker-volumes/
+
+# -------------------------
+# OS Files
+# -------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# -------------------------
+# IDE / Editors
+# -------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# -------------------------
+# TypeScript
+# -------------------------
+*.tsbuildinfo
+
+# -------------------------
+# Testing
+# -------------------------
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# -------------------------
+# Debugging
+# -------------------------
+*.pid
+*.seed
+*.pid.lock
+
+# -------------------------
+# Security / Certificates
+# -------------------------
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# -------------------------
+# Generated API / Docs
+# -------------------------
+swagger.json
+openapi.json
+
+# -------------------------
+# Local development
+# -------------------------
+.local/
+.local-data/
+
+# -------------------------
+# AI / LLM temporary artifacts
+# -------------------------
+.ai/
+.ai-cache/
+llm-cache/
+embeddings/
+vector-store/
+
+# -------------------------
+# Generated files
+# -------------------------
+generated/
+generated-files/
+
+# -------------------------
+# Backups
+# -------------------------
+*.bak
+*.backup
+*.old
+*.orig
+
+# -------------------------
+# Git
+# -------------------------
+*.orig

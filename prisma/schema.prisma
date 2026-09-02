@@ -1,0 +1,672 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ArcStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum DayStatus {
+  OPEN
+  CLOSED
+}
+
+enum DocumentFileType {
+  PDF
+  MARKDOWN
+  TXT
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PARSING
+  OCR
+  EXTRACTING
+  REVIEW
+  COMPLETED
+  FAILED
+}
+
+enum SectionType {
+  MODULE
+  SECTION
+  TOPIC
+}
+
+enum ChunkStatus {
+  PENDING
+  EXTRACTED
+  FAILED
+  REVIEW_NEEDED
+}
+
+enum TaskOrigin {
+  AI
+  USER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  BACKLOG
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  ABANDONED
+  MISSED
+  RESCHEDULED
+}
+
+enum VerificationType {
+  MANUAL
+  GITHUB_COMMIT
+  GITHUB_PR
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ChangeActor {
+  AI
+  USER
+  SYSTEM
+  GITHUB
+}
+
+enum DependencyType {
+  BLOCKING
+  SOFT
+}
+
+enum HabitFrequency {
+  DAILY
+  WEEKDAYS
+  WEEKENDS
+  CUSTOM
+}
+
+enum FocusStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SchedulePlanStatus {
+  DRAFT
+  ACCEPTED
+  SUPERSEDED
+}
+
+enum AccountabilitySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TagType {
+  EXECUTOR
+  IRON_STREAK
+  NO_QUIT
+  SHIPPER
+  DEEP_WORKER
+  OSS_CONTRIBUTOR
+  SYSTEM_BUILDER
+  ARC_BEAST
+  TASK_QUITTER
+  RESCHEDULE_ADDICT
+  EXCUSE_PATTERN
+  STREAK_KILLER
+  GHOST_MODE
+  CHRONIC_PROCRASTINATOR
+}
+
+enum NotificationChannel {
+  IN_APP
+  WEB_PUSH
+  EMAIL
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id                           String    @id @default(uuid())
+  name                         String
+  email                        String    @unique
+  password_hash                String
+  timezone                     String    @default("UTC")
+  github_username              String?
+  github_oauth_token_encrypted String?
+  commitment_phrase            String    @default("I ACCEPT THE COST")
+  created_at                   DateTime  @default(now())
+  updated_at                   DateTime  @updatedAt
+
+  arcs                         Arc[]
+  categories                   Category[]
+  documents                    SourceDocument[]
+  tasks                        Task[]
+  task_events                  TaskEvent[]
+  score_events                 ScoreEvent[]
+  user_stats                   UserStats[]
+  habits                       Habit[]
+  focus_sessions               FocusSession[]
+  accountability_findings      AccountabilityFinding[]
+  accountability_tags          AccountabilityTag[]
+  achievements                 UserAchievement[]
+  notifications                Notification[]
+  notification_preferences     NotificationPreference[]
+  refresh_tokens               RefreshToken[]
+  workspace_memberships        WorkspaceMember[]
+  owned_workspaces             Workspace[]              @relation("WorkspaceOwner")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  user_id    String
+  token_hash String   @unique
+  is_revoked Boolean  @default(false)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("refresh_tokens")
+}
+
+model Arc {
+  id                      String     @id @default(uuid())
+  user_id                 String
+  name                    String
+  description             String?
+  start_date              DateTime
+  end_date                DateTime
+  timezone                String     @default("UTC")
+  daily_capacity_minutes  Int        @default(360)
+  weekly_capacity_minutes Int        @default(2160)
+  status                  ArcStatus  @default(PLANNED)
+  created_at              DateTime   @default(now())
+  updated_at              DateTime   @updatedAt
+
+  user                    User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  days                    ArcDay[]
+  documents               SourceDocument[]
+  tasks                   Task[]
+  habits                  Habit[]
+  score_events            ScoreEvent[]
+  user_stats              UserStats?
+  schedule_plans          SchedulePlan[]
+  accountability_findings AccountabilityFinding[]
+
+  @@index([user_id])
+  @@map("arcs")
+}
+
+model ArcDay {
+  id                String    @id @default(uuid())
+  arc_id            String
+  date              String    // YYYY-MM-DD in arc timezone
+  planned_minutes   Int       @default(0)
+  completed_minutes Int       @default(0)
+  deep_work_minutes Int       @default(0)
+  planned_tasks     Int       @default(0)
+  completed_tasks   Int       @default(0)
+  missed_tasks      Int       @default(0)
+  skipped_tasks     Int       @default(0)
+  abandoned_tasks   Int       @default(0)
+  score_delta       Int       @default(0)
+  status            DayStatus @default(OPEN)
+  opened_at         DateTime  @default(now())
+  closed_at         DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  arc               Arc       @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+
+  @@unique([arc_id, date])
+  @@index([arc_id])
+  @@map("arc_days")
+}
+
+model Category {
+  id                    String         @id @default(uuid())
+  user_id               String?
+  name                  String
+  slug                  String
+  icon                  String?
+  color_token           String?
+  priority              Int            @default(0)
+  weekly_target_minutes Int            @default(0)
+  created_at            DateTime       @default(now())
+
+  user                  User?          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tasks                 Task[]
+  habits                Habit[]
+  task_revisions        TaskRevision[]
+
+  @@unique([user_id, slug])
+  @@map("categories")
+}
+
+model SourceDocument {
+  id                String           @id @default(uuid())
+  user_id           String
+  arc_id            String
+  file_type         DocumentFileType
+  original_filename String
+  storage_key       String
+  storage_url       String
+  content_hash      String
+  status            DocumentStatus   @default(UPLOADED)
+  error_message     String?
+  uploaded_at       DateTime         @default(now())
+  processed_at      DateTime?
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  user              User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc               Arc              @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+  sections          DocumentSection[]
+  chunks            DocumentChunk[]
+  tasks             Task[]
+
+  @@index([user_id])
+  @@index([arc_id])
+  @@map("source_documents")
+}
+
+model DocumentSection {
+  id            String            @id @default(uuid())
+  document_id   String
+  parent_id     String?
+  title         String
+  section_type  SectionType       @default(MODULE)
+  order_index   Int               @default(0)
+  source_page   Int?
+  source_text   String?
+  created_at    DateTime          @default(now())
+
+  document      SourceDocument    @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  parent        DocumentSection?  @relation("SectionHierarchy", fields: [parent_id], references: [id])
+  children      DocumentSection[] @relation("SectionHierarchy")
+  chunks        DocumentChunk[]
+  tasks         Task[]
+
+  @@index([document_id])
+  @@map("document_sections")
+}
+
+model DocumentChunk {
+  id                  String           @id @default(uuid())
+  document_id         String
+  section_id          String?
+  chunk_index         Int
+  content             String
+  extraction_status   ChunkStatus      @default(PENDING)
+  extraction_attempts Int              @default(0)
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+
+  document            SourceDocument   @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  section             DocumentSection? @relation(fields: [section_id], references: [id], onDelete: SetNull)
+
+  @@index([document_id])
+  @@map("document_chunks")
+}
+
+model Task {
+  id                       String             @id @default(uuid())
+  user_id                  String
+  arc_id                   String
+  title                    String
+  description              String?
+  origin                   TaskOrigin         @default(USER)
+  user_modified            Boolean            @default(false)
+  category_id              String
+  source_document_id       String?
+  source_section_id        String?
+  estimated_minutes        Int                @default(30)
+  actual_minutes           Int?
+  difficulty               Int                @default(1)
+  priority                 TaskPriority       @default(MEDIUM)
+  scheduled_date           String?            // YYYY-MM-DD
+  scheduled_start          String?            // HH:mm
+  scheduled_end            String?            // HH:mm
+  deadline                 DateTime?
+  status                   TaskStatus         @default(BACKLOG)
+  verification_type        VerificationType   @default(MANUAL)
+  verification_status      VerificationStatus @default(UNVERIFIED)
+  parent_task_id           String?
+  rescheduled_from_task_id String?
+  current_revision_id      String?
+  created_at               DateTime           @default(now())
+  updated_at               DateTime           @updatedAt
+
+  user                     User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc                      Arc                @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+  category                 Category           @relation(fields: [category_id], references: [id])
+  source_document          SourceDocument?    @relation(fields: [source_document_id], references: [id], onDelete: SetNull)
+  source_section           DocumentSection?   @relation(fields: [source_section_id], references: [id], onDelete: SetNull)
+  parent_task              Task?              @relation("TaskHierarchy", fields: [parent_task_id], references: [id])
+  subtasks                 Task[]             @relation("TaskHierarchy")
+  rescheduled_from         Task?              @relation("TaskReschedules", fields: [rescheduled_from_task_id], references: [id])
+  rescheduled_to           Task[]             @relation("TaskReschedules")
+
+  revisions                TaskRevision[]
+  dependencies             TaskDependency[]   @relation("TaskDependsOn")
+  dependent_tasks          TaskDependency[]   @relation("TaskDependedBy")
+  events                   TaskEvent[]
+  focus_sessions           FocusSession[]
+  schedule_items           ScheduleItem[]
+
+  @@index([user_id])
+  @@index([arc_id])
+  @@index([scheduled_date])
+  @@index([status])
+  @@map("tasks")
+}
+
+model TaskRevision {
+  id                String       @id @default(uuid())
+  task_id           String
+  version           Int
+  title             String
+  description       String?
+  category_id       String
+  estimated_minutes Int
+  difficulty        Int
+  priority          TaskPriority
+  changed_by        ChangeActor  @default(USER)
+  change_summary    String?
+  created_at        DateTime     @default(now())
+
+  task              Task         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  category          Category     @relation(fields: [category_id], references: [id])
+
+  @@unique([task_id, version])
+  @@index([task_id])
+  @@map("task_revisions")
+}
+
+model TaskDependency {
+  id                 String         @id @default(uuid())
+  task_id            String
+  depends_on_task_id String
+  type               DependencyType @default(BLOCKING)
+  created_at         DateTime       @default(now())
+
+  task               Task           @relation("TaskDependsOn", fields: [task_id], references: [id], onDelete: Cascade)
+  depends_on         Task           @relation("TaskDependedBy", fields: [depends_on_task_id], references: [id], onDelete: Cascade)
+
+  @@unique([task_id, depends_on_task_id])
+  @@index([task_id])
+  @@map("task_dependencies")
+}
+
+model TaskEvent {
+  id          String       @id @default(uuid())
+  task_id     String
+  user_id     String
+  from_status TaskStatus?
+  to_status   TaskStatus
+  event_type  String
+  reason_code String?
+  reason_text String?
+  metadata    Json?
+  actor       ChangeActor  @default(USER)
+  occurred_at DateTime     @default(now())
+
+  task        Task         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  score_events ScoreEvent[]
+
+  @@index([task_id])
+  @@index([user_id])
+  @@map("task_events")
+}
+
+model ScoreEvent {
+  id            String     @id @default(uuid())
+  user_id       String
+  arc_id        String
+  task_event_id String?
+  delta         Int
+  reason        String
+  metadata      Json?
+  occurred_at   DateTime   @default(now())
+
+  user          User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc           Arc        @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+  task_event    TaskEvent? @relation(fields: [task_event_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([arc_id])
+  @@map("score_events")
+}
+
+model UserStats {
+  id                      String    @id @default(uuid())
+  user_id                 String
+  arc_id                  String    @unique
+  current_score           Int       @default(0)
+  current_streak          Int       @default(0)
+  longest_streak          Int       @default(0)
+  total_completed         Int       @default(0)
+  total_skipped           Int       @default(0)
+  total_abandoned         Int       @default(0)
+  total_deep_work_minutes Int       @default(0)
+  last_active_date        String?
+  updated_at              DateTime  @updatedAt
+
+  user                    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc                     Arc       @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("user_stats")
+}
+
+model Habit {
+  id                String         @id @default(uuid())
+  user_id           String
+  arc_id            String
+  title             String
+  description       String?
+  category_id       String
+  frequency         HabitFrequency @default(DAILY)
+  target_days       String[]       @default([]) // e.g. ["MON", "TUE", "WED"]
+  estimated_minutes Int            @default(30)
+  active            Boolean        @default(true)
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  user              User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc               Arc            @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+  category          Category       @relation(fields: [category_id], references: [id])
+
+  @@index([user_id])
+  @@index([arc_id])
+  @@map("habits")
+}
+
+model FocusSession {
+  id               String      @id @default(uuid())
+  user_id          String
+  task_id          String?
+  started_at       DateTime    @default(now())
+  ended_at         DateTime?
+  duration_seconds Int         @default(0)
+  status           FocusStatus @default(ACTIVE)
+
+  user             User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  task             Task?       @relation(fields: [task_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([task_id])
+  @@map("focus_sessions")
+}
+
+model SchedulePlan {
+  id                String             @id @default(uuid())
+  arc_id            String
+  status            SchedulePlanStatus @default(DRAFT)
+  algorithm_version String             @default("1.0.0")
+  generated_at      DateTime           @default(now())
+
+  arc               Arc                @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+  items             ScheduleItem[]
+
+  @@index([arc_id])
+  @@map("schedule_plans")
+}
+
+model ScheduleItem {
+  id               String       @id @default(uuid())
+  schedule_plan_id String
+  task_id          String
+  date             String       // YYYY-MM-DD
+  start_time       String?      // HH:mm
+  end_time         String?      // HH:mm
+  reason           String?
+
+  plan             SchedulePlan @relation(fields: [schedule_plan_id], references: [id], onDelete: Cascade)
+  task             Task         @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([schedule_plan_id])
+  @@index([task_id])
+  @@map("schedule_items")
+}
+
+model AccountabilityFinding {
+  id         String                 @id @default(uuid())
+  user_id    String
+  arc_id     String
+  type       String
+  severity   AccountabilitySeverity @default(MEDIUM)
+  facts      Json
+  message    String
+  created_at DateTime               @default(now())
+
+  user       User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  arc        Arc                    @relation(fields: [arc_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([arc_id])
+  @@map("accountability_findings")
+}
+
+model AccountabilityTag {
+  id          String   @id @default(uuid())
+  user_id     String
+  tag         TagType
+  assigned_at DateTime @default(now())
+  active      Boolean  @default(true)
+  evidence    Json?
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("accountability_tags")
+}
+
+model UserAchievement {
+  id              String   @id @default(uuid())
+  user_id         String
+  achievement_key String
+  unlocked_at     DateTime @default(now())
+  metadata        Json?
+
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, achievement_key])
+  @@index([user_id])
+  @@map("user_achievements")
+}
+
+model Notification {
+  id            String              @id @default(uuid())
+  user_id       String
+  type          String
+  title         String
+  body          String
+  scheduled_for DateTime            @default(now())
+  sent_at       DateTime?
+  read_at       DateTime?
+  metadata      Json?
+  created_at    DateTime            @default(now())
+
+  user          User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([read_at])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                String              @id @default(uuid())
+  user_id           String
+  notification_type String
+  enabled           Boolean             @default(true)
+  channel           NotificationChannel @default(IN_APP)
+
+  user              User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, notification_type, channel])
+  @@index([user_id])
+  @@map("notification_preferences")
+}
+
+model Workspace {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  invite_code String            @unique
+  owner_id    String
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+
+  owner       User              @relation("WorkspaceOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id           String        @id @default(uuid())
+  workspace_id String
+  user_id      String
+  role         WorkspaceRole @default(MEMBER)
+  joined_at    DateTime      @default(now())
+
+  workspace    Workspace     @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([workspace_id, user_id])
+  @@index([workspace_id])
+  @@index([user_id])
+  @@map("workspace_members")
+}
