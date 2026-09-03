@@ -138,6 +138,7 @@ export const documentsApi = {
   upload: (dto: UploadDocumentDto) => apiClient.post<SourceDocument>('/documents/upload', dto),
   list: (arcId: string) => apiClient.get<SourceDocument[]>(`/documents?arcId=${arcId}`),
   getById: (id: string) => apiClient.get<SourceDocument>(`/documents/${id}`),
+  retry: (id: string) => apiClient.post<{ message: string; documentId: string }>(`/documents/${id}/retry`),
 };
 
 // 10. Scheduling API

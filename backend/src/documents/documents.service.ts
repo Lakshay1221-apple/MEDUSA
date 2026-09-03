@@ -95,6 +95,14 @@ export class DocumentsService {
         content = buffer.toString('utf-8');
       }
 
+      // Clean up previous attempts if retrying
+      if (typeof this.prisma.documentChunk?.deleteMany === 'function') {
+        await this.prisma.documentChunk.deleteMany({ where: { document_id: documentId } });
+      }
+      if (typeof this.prisma.documentSection?.deleteMany === 'function') {
+        await this.prisma.documentSection.deleteMany({ where: { document_id: documentId } });
+      }
+
       const parsed = this.aiService.parseDocument(content, document.original_filename);
 
       // Save hierarchical sections
@@ -129,14 +137,29 @@ export class DocumentsService {
       });
 
       // Get or create default categories for assignment
-      const categories = await this.prisma.category.findMany({
+      let categories = await this.prisma.category.findMany({
         where: { OR: [{ user_id: null }, { user_id: document.user_id }] },
       });
+      if (!categories || categories.length === 0) {
+        const defaultCat = await this.prisma.category.create({
+          data: {
+            user_id: document.user_id,
+            name: 'General',
+            slug: 'GENERAL',
+            color_token: 'blue',
+            priority: 1,
+            weekly_target_minutes: 600,
+          },
+        });
+        categories = [defaultCat];
+      }
+
       const categoryMap = new Map<string, string>();
       for (const cat of categories) {
-        categoryMap.set(cat.slug.toUpperCase(), cat.id);
+        if (cat?.slug) categoryMap.set(cat.slug.toUpperCase(), cat.id);
+        if (cat?.name) categoryMap.set(cat.name.toUpperCase(), cat.id);
       }
-      const defaultCategoryId = categories[0]?.id;
+      const defaultCategoryId = categories[0]?.id || 'default-category';
 
       // Extract tasks for each chunk
       for (let i = 0; i < parsed.chunks.length; i++) {
@@ -154,9 +177,8 @@ export class DocumentsService {
 
         if (result.success && result.tasks.length > 0) {
           for (const extracted of result.tasks) {
-            const catId =
-              categoryMap.get(extracted.category.toUpperCase()) ||
-              defaultCategoryId;
+            const requestedCatKey = (extracted?.category || '').toUpperCase();
+            const catId = categoryMap.get(requestedCatKey) || defaultCategoryId;
 
             const task = await this.prisma.task.create({
               data: {
@@ -263,5 +285,24 @@ export class DocumentsService {
       },
       orderBy: { uploaded_at: 'desc' },
     });
+  }
+
+  async retryDocument(userId: string, documentId: string) {
+    const document = await this.prisma.sourceDocument.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!document || document.user_id !== userId) {
+      throw new NotFoundException({
+        code: 'DOCUMENT_NOT_FOUND',
+        message: 'Document not found or access denied',
+      });
+    }
+
+    this.processDocument(document.id).catch((err) => {
+      this.logger.error(`Error retrying document ${document.id}: ${err.message}`);
+    });
+
+    return { message: 'Document re-processing started', documentId: document.id };
   }
 }

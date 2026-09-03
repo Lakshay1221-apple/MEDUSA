@@ -40,4 +40,12 @@ export class DocumentsController {
   ) {
     return this.documentsService.getDocument(userId, id);
   }
+
+  @Post(':id/retry')
+  async retry(
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.documentsService.retryDocument(userId, id);
+  }
 }

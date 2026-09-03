@@ -25,11 +25,21 @@ async function main() {
   ];
 
   for (const cat of categoriesData) {
-    await prisma.category.upsert({
-      where: { user_id_slug: { user_id: null, slug: cat.slug } },
-      create: { user_id: null, name: cat.name, slug: cat.slug, icon: cat.icon, color_token: cat.color_token, priority: cat.priority },
-      update: {},
+    const existing = await prisma.category.findFirst({
+      where: { user_id: null, slug: cat.slug },
     });
+    if (!existing) {
+      await prisma.category.create({
+        data: {
+          user_id: null,
+          name: cat.name,
+          slug: cat.slug,
+          icon: cat.icon,
+          color_token: cat.color_token,
+          priority: cat.priority,
+        },
+      });
+    }
   }
   console.log('✅ Default categories seeded.');
 

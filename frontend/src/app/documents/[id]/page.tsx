@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/Toast';
 import { AppShell } from '@/components/shell/AppShell';
 import { documentsApi } from '@/lib/api/endpoints';
 import { queryKeys } from '@/lib/query/keys';
@@ -11,16 +12,27 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { ArrowLeft, Bot, Layers, CheckCircle2, ChevronRight, FileCode } from 'lucide-react';
+import { ArrowLeft, Bot, Layers, CheckCircle2, ChevronRight, FileCode, RotateCw } from 'lucide-react';
 
 export default function DocumentDetailPage() {
   const params = useParams();
   const documentId = params.id as string;
+  const queryClient = useQueryClient();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const { data: document, isLoading } = useQuery({
     queryKey: queryKeys.documents.detail(documentId),
     queryFn: () => documentsApi.getById(documentId),
     enabled: !!documentId,
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: () => documentsApi.retry(documentId),
+    onSuccess: () => {
+      toastSuccess('RE-PROCESSING INITIALIZED', 'AI extraction pipeline restarted.');
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.detail(documentId) });
+    },
+    onError: (err: any) => toastError('RETRY FAILED', err.message),
   });
 
   if (isLoading) {
@@ -71,9 +83,23 @@ export default function DocumentDetailPage() {
             </span>
           </div>
 
-          <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-100">
-            {document.original_filename}
-          </h1>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-100">
+              {document.original_filename}
+            </h1>
+            {document.status === 'FAILED' && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => retryMutation.mutate()}
+                isLoading={retryMutation.isPending}
+                className="text-xs"
+              >
+                <RotateCw className="h-3.5 w-3.5 mr-1.5" />
+                RETRY AI EXTRACTION
+              </Button>
+            )}
+          </div>
 
           <div className="flex items-center space-x-6 text-xs text-slate-400 pt-2 border-t border-surface-border">
             <span>SECTIONS: {document.sections?.length || 0}</span>

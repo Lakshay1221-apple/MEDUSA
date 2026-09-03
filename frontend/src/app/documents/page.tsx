@@ -49,6 +49,15 @@ export default function DocumentsPage() {
     onError: (err: any) => toastError('INGESTION FAILED', err.message),
   });
 
+  const retryMutation = useMutation({
+    mutationFn: (id: string) => documentsApi.retry(id),
+    onSuccess: () => {
+      toastSuccess('RE-PROCESSING INITIALIZED', 'AI extraction pipeline restarted.');
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.byArc(activeArc?.id || '') });
+    },
+    onError: (err: any) => toastError('RETRY FAILED', err.message),
+  });
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || !filename.trim()) {
@@ -141,8 +150,19 @@ export default function DocumentsPage() {
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-surface-border">
-                  <Link href={`/documents/${doc.id}`}>
+                <div className="pt-3 border-t border-surface-border space-y-2">
+                  {doc.status === 'FAILED' && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => retryMutation.mutate(doc.id)}
+                      isLoading={retryMutation.isPending}
+                    >
+                      RETRY INGESTION &rarr;
+                    </Button>
+                  )}
+                  <Link href={`/documents/${doc.id}`} className="block">
                     <Button variant="outline" size="sm" className="w-full text-xs">
                       REVIEW EXTRACTIONS &rarr;
                     </Button>
