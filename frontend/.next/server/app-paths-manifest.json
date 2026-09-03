@@ -1,9 +1,10 @@
 {
-  "/tasks/page": "app/tasks/page.js",
-  "/arcs/[id]/page": "app/arcs/[id]/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/documents/page": "app/documents/page.js",
   "/documents/[id]/page": "app/documents/[id]/page.js",
-  "/arcs/page": "app/arcs/page.js",
-  "/tasks/[id]/page": "app/tasks/[id]/page.js"
+  "/documents/page": "app/documents/page.js",
+  "/habits/page": "app/habits/page.js",
+  "/accountability/page": "app/accountability/page.js",
+  "/streaks/page": "app/streaks/page.js",
+  "/focus/page": "app/focus/page.js",
+  "/tasks/[id]/page": "app/tasks/[id]/page.js",
+  "/score/page": "app/score/page.js"
 }

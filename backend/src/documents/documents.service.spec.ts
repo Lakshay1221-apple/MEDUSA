@@ -33,6 +33,11 @@ describe('DocumentsService', () => {
         sections: [{ title: 'Module 1', sectionType: 'MODULE', orderIndex: 0, children: [] }],
         chunks: ['Learn Redis and build caching demo'],
       }),
+      parseMarkdownSchedule: jest.fn().mockReturnValue({
+        tasks: [{ title: 'Learn Redis', description: 'desc', category: 'BACKEND', estimated_minutes: 60, difficulty: 2, priority: 'HIGH' }],
+        templates: [],
+        sections: [],
+      }),
       extractTasks: jest.fn().mockResolvedValue({
         success: true,
         tasks: [{ title: 'Learn Redis', description: 'desc', category: 'BACKEND', estimated_minutes: 60, difficulty: 2, priority: 'HIGH' }],

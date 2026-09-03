@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"lib/socket/socketClient.ts -> socket.io-client\":{\"id\":\"lib/socket/socketClient.ts -> socket.io-client\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_socket_io-client_build_esm_index_js.js\"]}}"

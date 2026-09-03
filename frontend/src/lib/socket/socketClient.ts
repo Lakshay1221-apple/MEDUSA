@@ -1,4 +1,4 @@
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000/realtime';
 
@@ -6,39 +6,49 @@ class RealtimeSocketManager {
   private socket: Socket | null = null;
   private currentUserId: string | null = null;
   private currentWorkspaceId: string | null = null;
+  private pendingHandlers: Array<{ event: string; callback: (...args: any[]) => void }> = [];
 
-  public connect(userId?: string, workspaceId?: string) {
+  public async connect(userId?: string, workspaceId?: string) {
     if (typeof window === 'undefined') return;
 
     if (!this.socket) {
-      this.socket = io(WS_BASE_URL, {
-        transports: ['websocket', 'polling'],
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000,
-      });
+      try {
+        const { io } = await import('socket.io-client');
+        this.socket = io(WS_BASE_URL, {
+          transports: ['websocket', 'polling'],
+          autoConnect: true,
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 2000,
+        });
 
-      this.socket.on('connect', () => {
-        if (this.currentUserId) {
-          this.socket?.emit('join_user', { userId: this.currentUserId });
+        this.socket.on('connect', () => {
+          if (this.currentUserId) {
+            this.socket?.emit('join_user', { userId: this.currentUserId });
+          }
+          if (this.currentWorkspaceId) {
+            this.socket?.emit('join_workspace', { workspaceId: this.currentWorkspaceId });
+          }
+        });
+
+        for (const { event, callback } of this.pendingHandlers) {
+          this.socket.on(event, callback);
         }
-        if (this.currentWorkspaceId) {
-          this.socket?.emit('join_workspace', { workspaceId: this.currentWorkspaceId });
-        }
-      });
+      } catch (err) {
+        console.warn('Realtime WebSocket connection failed to initialize:', err);
+      }
     }
 
     if (userId && userId !== this.currentUserId) {
       this.currentUserId = userId;
-      if (this.socket.connected) {
+      if (this.socket?.connected) {
         this.socket.emit('join_user', { userId });
       }
     }
 
     if (workspaceId && workspaceId !== this.currentWorkspaceId) {
       this.currentWorkspaceId = workspaceId;
-      if (this.socket.connected) {
+      if (this.socket?.connected) {
         this.socket.emit('join_workspace', { workspaceId });
       }
     }
@@ -52,10 +62,21 @@ class RealtimeSocketManager {
   }
 
   public on(event: string, callback: (...args: any[]) => void) {
-    if (!this.socket) this.connect();
-    this.socket?.on(event, callback);
+    if (typeof window === 'undefined') return () => {};
+    if (!this.socket) {
+      this.pendingHandlers.push({ event, callback });
+      this.connect();
+    } else {
+      this.socket.on(event, callback);
+    }
     return () => {
-      this.socket?.off(event, callback);
+      if (this.socket) {
+        this.socket.off(event, callback);
+      } else {
+        this.pendingHandlers = this.pendingHandlers.filter(
+          (h) => h.event !== event || h.callback !== callback,
+        );
+      }
     };
   }
 
@@ -66,6 +87,7 @@ class RealtimeSocketManager {
     }
     this.currentUserId = null;
     this.currentWorkspaceId = null;
+    this.pendingHandlers = [];
   }
 }
 

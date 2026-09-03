@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentParser, ParsedDocument } from './document-parser';
 import { LlmExtractor, ExtractionResult } from './llm-extractor';
 import { DocumentDiffEngine, DiffResult } from './diff-engine';
+import { MarkdownScheduleParser, MarkdownScheduleResult } from './markdown-schedule-parser';
 
 @Injectable()
 export class AiService {
@@ -12,6 +13,10 @@ export class AiService {
 
   parseDocument(content: string, filename: string): ParsedDocument {
     return DocumentParser.parse(content, filename);
+  }
+
+  parseMarkdownSchedule(content: string, defaultYear?: number): MarkdownScheduleResult {
+    return MarkdownScheduleParser.parse(content, defaultYear);
   }
 
   async extractTasks(chunkContent: string): Promise<ExtractionResult> {
